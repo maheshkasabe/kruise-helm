@@ -1,0 +1,18 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+   name: postupgrade-hook
+   annotations:
+       "helm.sh/hook": "post-upgrade"
+spec:
+  template:
+    spec:
+      containers:
+      - name: health-check-container
+        image: maheshkasbe/hook:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+            /get_replica_count.sh
+      restartPolicy: Never
+      serviceAccountName: default
