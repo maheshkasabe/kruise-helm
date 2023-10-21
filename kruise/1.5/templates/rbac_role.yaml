@@ -892,7 +892,7 @@ subjects:
   namespace: {{ .Values.installation.namespace }}
 ---
 ---
-#Job Role
+#Post-upgrade Job Role
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -900,7 +900,7 @@ metadata:
   namespace: default
 rules:
 - apiGroups: ["apps.kruise.io"]
-  resources: ["clonesets"]
+  resources: ["clonesets","statefulsets","daemonsets","broadcastjobs","advancedcronjobs"]
   verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

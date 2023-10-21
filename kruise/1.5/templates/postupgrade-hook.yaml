@@ -9,10 +9,10 @@ spec:
     spec:
       containers:
       - name: health-check-container
-        image: maheshkasbe/hook:latest
+        image: maheshkasbe/helm:v2
         command: ["/bin/sh", "-c"]
         args:
         - |
-            /get_replica_count.sh
+            lua healthcheck.lua
       restartPolicy: Never
       serviceAccountName: default
