@@ -24,30 +24,34 @@ function bcj.checkHealth(output)
         message = "Waiting for initialization"
     }
 
-    if obj.items[1].status ~= nil then 
+    if obj.items[1] and obj.items[1].status ~= nil then 
+        
+        for _, item in ipairs(obj.items) do 
 
-        if obj.items[1].status.desired == obj.items[1].status.succeeded and obj.items[1].status.phase == "completed" then 
-            hs.status = "Healthy"
-            hs.message = "BroadcastJob is completed successfully"
+            if item.status.desired == item.status.succeeded and item.status.phase == "completed" then 
+                hs.status = "Healthy"
+                hs.message = "BroadcastJob is completed successfully"
                 return hs
-        end
+            end
 
-        if obj.items[1].status.active ~= 0 and obj.items[1].status.phase == "running" then
-            hs.status = "Progressing"
-            hs.message = "BroadcastJob is still running"
-            return hs
-        end
+            if item.status.active ~= 0 and item.status.phase == "running" then
+                hs.status = "Progressing"
+                hs.message = "BroadcastJob is still running"
+                return hs
+            end
 
-        if obj.items[1].status.failed ~= 0  and obj.items[1].status.phase == "failed" then
+            if item.status.failed ~= 0  and item.status.phase == "failed" then
                 hs.status = "Degraded"
                 hs.message = "BroadcastJob failed"
                 return hs
-        end
+            end
         
-        if obj.items[1].status.phase == "paused" and obj.items[1].spec.paused == true then 
-            hs.status = "Suspended"
-            hs.message = "BroadcastJob is Paused"
-            return hs
+            if item.status.phase == "paused" and item.spec.paused == true then 
+                hs.status = "Suspended"
+                hs.message = "BroadcastJob is Paused"
+                return hs
+            end
+
         end
              
     end

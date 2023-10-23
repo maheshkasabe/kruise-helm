@@ -26,33 +26,40 @@ function acj.checkHealth(output)
 
     local lastScheduleTime = nil
 
-    if obj.items[1].status.lastScheduleTime ~= nil then
-        local year, month, day, hour, min, sec = string.match(obj.items[1].status.lastScheduleTime, "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)Z")
-        lastScheduleTime = os.time({year=year, month=month, day=day, hour=hour, min=min, sec=sec})
-    end
+    if obj.items[1] then 
+        
+        for _, item in ipairs(obj.items) do
 
-    if lastScheduleTime == nil and obj.items[1].spec.paused == true then 
-        hs.status = "Suspended"
-        hs.message = "AdvancedCronJob is Paused"
-        return hs
-    end
-
-    if obj.items[1].status.active ~= nil and #obj.items[1].status.active > 0 then
-        hs.status = "Progressing"
-        hs.message = "AdvancedCronJobs has active jobs"
-        return hs
-    end
-
-    if lastScheduleTime == nil then
-        hs.status = "Degraded"
-        hs.message = "AdvancedCronJobs has not run successfully"
-        return hs
-    end
-
-    if lastScheduleTime ~= nil then
-        hs.status = "Healthy"
-        hs.message = "AdvancedCronJobs has run successfully"
-        return hs
+            if item.status.lastScheduleTime ~= nil then
+                local year, month, day, hour, min, sec = string.match(item.status.lastScheduleTime, "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)Z")
+                lastScheduleTime = os.time({year=year, month=month, day=day, hour=hour, min=min, sec=sec})
+            end
+    
+            if lastScheduleTime == nil and item.spec.paused == true then 
+                hs.status = "Suspended"
+                hs.message = "AdvancedCronJob is Paused"
+                return hs
+            end
+    
+            if item.status.active ~= nil and #item.status.active > 0 then
+                hs.status = "Progressing"
+                hs.message = "AdvancedCronJobs has active jobs"
+                return hs
+            end
+    
+            if lastScheduleTime == nil then
+                hs.status = "Degraded"
+                hs.message = "AdvancedCronJobs has not run successfully"
+                return hs
+            end
+    
+            if lastScheduleTime ~= nil then
+                hs.status = "Healthy"
+                hs.message = "AdvancedCronJobs has run successfully"
+                return hs
+            end
+    
+        end
     end
 
     return hs

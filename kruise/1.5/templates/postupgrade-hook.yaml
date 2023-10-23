@@ -4,15 +4,16 @@ metadata:
    name: postupgrade-hook
    annotations:
        "helm.sh/hook": "post-upgrade"
+       "helm.sh/hook-delete-policy": "hook-succeeded"
 spec:
   template:
     spec:
       containers:
       - name: health-check-container
-        image: maheshkasbe/helm:v2
+        image: maheshkasbe/hook:v2
         command: ["/bin/sh", "-c"]
         args:
         - |
-            lua healthcheck.lua
+            lua healthcheck.lua cloneset default
       restartPolicy: Never
       serviceAccountName: default

@@ -15,4 +15,4 @@ RUN alias luarocks=luarocks-5.1
 
 RUN luarocks-5.1 install lyaml
 
-COPY healthcheck.lua /app
+COPY cmd-tool/ /app/
