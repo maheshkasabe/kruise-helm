@@ -35,8 +35,9 @@ function DaemonSet.checkHealth(output)
                     hs.status = "Suspended"
                     hs.message = "Daemonset is paused"
                     return hs
-                elseif item.spec.updateStrategy.rollingUpdate.partition and item.spec.updateStrategy.rollingUpdate.partition ~= 0 then
-                    if item.status.updatedNumberScheduled > (item.status.desiredNumberScheduled - item.spec.updateStrategy.rollingUpdate.partition) then
+                
+                elseif item.spec.updateStrategy.rollingUpdate.partition > 0 and item.spec.updateStrategy.rollingUpdate.partition > item.status.desiredNumberScheduled then
+                    if item.status.updatedNumberScheduled < (item.status.desiredNumberScheduled - item.spec.updateStrategy.rollingUpdate.partition) then
                         hs.status = "Suspended"
                         hs.message = "Daemonset needs manual intervention"
                         return hs
@@ -44,7 +45,7 @@ function DaemonSet.checkHealth(output)
         
                 elseif (item.status.updatedNumberScheduled == item.status.desiredNumberScheduled) and (item.status.numberAvailable == item.status.desiredNumberScheduled) then
                     hs.status = "Healthy"
-                    hs.message = "All Daemonset workloads are ready and updated"    
+                    hs.message = "All Daemonset workloads are ready and updated"
                 return hs
                 
                 elseif (item.status.updatedNumberScheduled == item.status.desiredNumberScheduled) and (item.status.numberUnavailable == item.status.desiredNumberScheduled) then

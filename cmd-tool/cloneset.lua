@@ -25,37 +25,41 @@ function CloneSet.checkHealth(output)
     
     local hs={ status = "Progressing", message = "Waiting for initialization" }
 
-if obj.items[1] and obj.items[1].status ~= nil then
+    if obj.items[1] and obj.items[1].status ~= nil then
 
-    for _, item in ipairs(obj.items) do
+        for _, item in ipairs(obj.items) do
         
-        if item.metadata.generation == item.status.observedGeneration then
+            if item.metadata.generation == item.status.observedGeneration then
 
-            if item.spec.updateStrategy.paused == true then
-                hs.status = "Suspended"
-                hs.message = "Cloneset is paused"
+                if item.spec.updateStrategy.paused == true then
+                    hs.status = "Suspended"
+                    hs.message = "Cloneset is paused"
                 return hs
 
-            elseif item.spec.updateStrategy.partition ~= 0 then
-                if item.status.updatedReplicas >= item.status.expectedUpdatedReplicas then
-                    hs.status = "Suspended"
-                    hs.message = "Cloneset needs manual intervention"
+                elseif item.spec.updateStrategy.partition ~= 0 and item.metadata.generation > 1 then
+                    if item.status.updatedReplicas ~= item.status.expectedUpdatedReplicas then
+                        hs.status = "Suspended"
+                        hs.message = "Cloneset needs manual intervention"
+                        return hs
+                    elseif item.status.updatedAvailableReplicas == (item.status.replicas-item.spec.updateStrategy.partition) then
+                        hs.status = "Healthy"
+                        hs.message = "All Cloneset workloads are ready and updated"
+                    end
+
+
+                elseif item.status.updatedAvailableReplicas == item.status.replicas then
+                    hs.status = "Healthy"
+                    hs.message = "All Cloneset workloads are ready and updated"    
+                    return hs
+        
+                elseif item.status.updatedAvailableReplicas ~= item.status.replicas then
+                    hs.status = "Degraded"
+                    hs.message = "Some replicas are not ready or available"
                     return hs
                 end
-
-            elseif item.status.updatedAvailableReplicas == item.status.replicas then
-                hs.status = "Healthy"
-                hs.message = "All Cloneset workloads are ready and updated"    
-                return hs
-        
-            elseif item.status.updatedAvailableReplicas ~= item.status.replicas then
-                hs.status = "Degraded"
-                hs.message = "Some replicas are not ready or available"
-                return hs
             end
         end
     end
-end
 
 return hs
 

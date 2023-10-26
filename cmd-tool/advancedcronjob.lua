@@ -24,7 +24,7 @@ function acj.checkHealth(output)
         message = "AdvancedCronJobs has active jobs"
     }
 
-    local lastScheduleTime = nil
+    lastScheduleTime = nil
 
     if obj.items[1] then 
         
@@ -35,7 +35,7 @@ function acj.checkHealth(output)
                 lastScheduleTime = os.time({year=year, month=month, day=day, hour=hour, min=min, sec=sec})
             end
     
-            if lastScheduleTime == nil and item.spec.paused == true then 
+            if lastScheduleTime == nil and item.spec.paused == true then
                 hs.status = "Suspended"
                 hs.message = "AdvancedCronJob is Paused"
                 return hs

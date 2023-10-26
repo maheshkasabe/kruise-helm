@@ -1,15 +1,28 @@
 local args = {...}
 
-if #args % 2 ~= 0 then
-    print("Invalid command-line arguments. Use pairs of workload type and namespace.")
+if table.concat(args, " "):find("%-h") then
+    print("Usage: lua healthcheck.lua [workload types] [namespace]")
+    print("Options:")
+    print("-h          Show usage instructions.")
+    print("Workload types: cloneset, daemonset, statefulset, advancedcronjob (acj), broadcastjob (bcj)")
+    os.exit(0)
+end
+-- Ensure that there's at least one argument
+if #args < 2 then
+    print("Invalid command-line arguments. Use the format 'workloadType1,workloadType2,... namespace'")
+    print("Usage: lua healthcheck.lua [workload types] [namespace]")
+    print("Options:")
+    print("-h          Show usage instructions.")
+    print("Workload types: cloneset, daemonset, statefulset, advancedcronjob (acj), broadcastjob (bcj)")
     os.exit(1)
 end
 
--- Load the corresponding module for each workload type and namespace
-for i = 1, #args, 5 do
-    local kind = args[i]
-    local namespace = args[i + 1]
+-- Extract the workload types and namespace from the arguments
+local workloadTypes = table.remove(args, 1)
+local namespace = table.remove(args, 1)
 
+-- Split the workload types using a comma and iterate over them
+for kind in string.gmatch(workloadTypes, "[^,]+") do
     local workloadModule
 
     if kind == "cloneset" then
@@ -23,7 +36,7 @@ for i = 1, #args, 5 do
     elseif kind == "acj" or kind == "advancedcronjob" then
         workloadModule = require("advancedcronjob")
     else
-        print("Invalid kind. Supported kinds are cloneset,daemonset,statefulset,advancedcronjob(acj) and broadcastjob(bcj).")
+        print("Invalid kind. Supported kinds are cloneset, daemonset, statefulset, advancedcronjob (acj), and broadcastjob (bcj).")
         os.exit(1)
     end
 
