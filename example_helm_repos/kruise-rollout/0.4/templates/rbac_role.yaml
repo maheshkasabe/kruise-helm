@@ -436,3 +436,26 @@ subjects:
   - kind: ServiceAccount
     name: {{ template "rollout.name" . }}-controller-manager
     namespace: {{ .Values.installation.namespace }}
+#Post-upgrade Job Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: post-install-role
+  namespace: default
+rules:
+- apiGroups: ["rollouts.kruise.io"]
+  resources: ["rollout"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: post-install-rolebinding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: Role
+  name: post-install-role

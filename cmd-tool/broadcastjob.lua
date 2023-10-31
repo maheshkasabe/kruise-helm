@@ -14,49 +14,59 @@ function bcj.captureCommandOutput(namespace)
     return output
 end
 
-function bcj.checkHealth(output)
-
+function bcj.checkHealthWithTimeout(namespace,timeout)
     local lyaml = require("lyaml")
-    local obj = lyaml.load(output)
 
-    local hs = {
-        status = "Progressing",
-        message = "Waiting for initialization"
-    }
-
-    if obj.items[1] and obj.items[1].status ~= nil then 
-        
-        for _, item in ipairs(obj.items) do 
-
-            if item.status.desired == item.status.succeeded and item.status.phase == "completed" then 
-                hs.status = "Healthy"
-                hs.message = "BroadcastJob is completed successfully"
-                return hs
+    local function checkStatus()
+        local output = bcj.captureCommandOutput(namespace)
+        local obj = lyaml.load(output)
+    
+        local hs = { status = "Progressing",message = "Waiting for initialization" }
+    
+        if obj.items[1] ~= nil and obj.items[1].status ~= nil then 
+            
+            for _, item in ipairs(obj.items) do 
+    
+                if item.status.desired == item.status.succeeded and item.status.phase == "completed" then 
+                    hs.status = "Healthy"
+                    hs.message = "BroadcastJob is completed successfully"
+                end
+    
+                if item.status.active ~= 0 and item.status.phase == "running" then
+                    hs.status = "Progressing"
+                    hs.message = "BroadcastJob is still running"
+                end
+    
+                if item.status.failed ~= 0  and item.status.phase == "failed" then
+                    hs.status = "Degraded"
+                    hs.message = "BroadcastJob failed"
+                end
+            
+                if item.status.phase == "paused" and item.spec.paused == true then 
+                    hs.status = "Suspended"
+                    hs.message = "BroadcastJob is Paused"
+                end
+    
             end
-
-            if item.status.active ~= 0 and item.status.phase == "running" then
-                hs.status = "Progressing"
-                hs.message = "BroadcastJob is still running"
-                return hs
-            end
-
-            if item.status.failed ~= 0  and item.status.phase == "failed" then
-                hs.status = "Degraded"
-                hs.message = "BroadcastJob failed"
-                return hs
-            end
-        
-            if item.status.phase == "paused" and item.spec.paused == true then 
-                hs.status = "Suspended"
-                hs.message = "BroadcastJob is Paused"
-                return hs
-            end
-
+                 
         end
-             
+    
+        return hs
     end
 
-    return hs
+    local initialStatus = checkStatus()
+
+    if initialStatus.status == "Suspended" or initialStatus.status == "Degraded" or initialStatus.status == "Progressing" then
+        for _ = 1, timeout do
+            os.execute("sleep 1")
+            local recheckStatus = checkStatus()
+            if recheckStatus.status ~= initialStatus.status then
+                return recheckStatus
+            end
+        end
+    end
+
+    return initialStatus
 
 end
 

@@ -1,8 +1,11 @@
 local CloneSet = {}
 
-function CloneSet.captureCommandOutput(namespace)
-    
+function CloneSet.captureCommandOutput(namespace, workloadName)
     local command = "kubectl get cloneset.apps.kruise.io -n " .. namespace .. " -o yaml"
+
+    if workloadName ~= nil then
+        command = command .. " " .. workloadName
+    end
 
     local handle = io.popen(command)
     local output = handle:read("*a")
@@ -11,57 +14,68 @@ function CloneSet.captureCommandOutput(namespace)
     if not success then
         return nil, exit_reason, exit_code
     end
-    
-    return output
 
+    return output
 end
 
-function CloneSet.checkHealth(output)
-        -- Load the YAML output into a Lua table
+function CloneSet.checkHealthWithTimeout(namespace,workloadName,timeout)
     local lyaml = require("lyaml")
-    local obj = lyaml.load(output)
-    
-    --    print(obj.item[1].status.replicas)
-    
-    local hs={ status = "Progressing", message = "Waiting for initialization" }
 
-    if obj.items[1] and obj.items[1].status ~= nil then
+    local function checkStatus()
+        local output = CloneSet.captureCommandOutput(namespace, workloadName)
+        local obj = lyaml.load(output)
+    
+        local hs={ status = "Progressing", message = "Waiting for initialization" }
 
-        for _, item in ipairs(obj.items) do
+        if obj.items[1] ~= nil and obj.items[1].status ~= nil then
+
+            for _, item in ipairs(obj.items) do
         
-            if item.metadata.generation == item.status.observedGeneration then
+                if item.metadata.generation == item.status.observedGeneration then
 
-                if item.spec.updateStrategy.paused == true then
-                    hs.status = "Suspended"
-                    hs.message = "Cloneset is paused"
-                return hs
-
-                elseif item.spec.updateStrategy.partition ~= 0 and item.metadata.generation > 1 then
-                    if item.status.updatedReplicas ~= item.status.expectedUpdatedReplicas then
+                    if item.spec.updateStrategy.paused == true or not item.status.updatedAvailableReplicas then
                         hs.status = "Suspended"
-                        hs.message = "Cloneset needs manual intervention"
-                        return hs
-                    elseif item.status.updatedAvailableReplicas == (item.status.replicas-item.spec.updateStrategy.partition) then
+                        hs.message = "Cloneset is paused"
+
+                    elseif item.spec.updateStrategy.partition ~= 0 and item.metadata.generation > 1 then
+                        if item.status.updatedReplicas ~= item.status.expectedUpdatedReplicas then
+                            hs.status = "Suspended"
+                            hs.message = "Cloneset needs manual intervention"
+                        elseif item.status.updatedAvailableReplicas == (item.status.replicas-item.spec.updateStrategy.partition) then
+                            hs.status = "Healthy"
+                            hs.message = "All Cloneset workloads are ready and updated"
+                        end
+
+
+                    elseif item.status.updatedAvailableReplicas == item.status.replicas then
                         hs.status = "Healthy"
-                        hs.message = "All Cloneset workloads are ready and updated"
-                    end
-
-
-                elseif item.status.updatedAvailableReplicas == item.status.replicas then
-                    hs.status = "Healthy"
-                    hs.message = "All Cloneset workloads are ready and updated"    
-                    return hs
+                        hs.message = "All Cloneset workloads are ready and updated"    
         
-                elseif item.status.updatedAvailableReplicas ~= item.status.replicas then
-                    hs.status = "Degraded"
-                    hs.message = "Some replicas are not ready or available"
-                    return hs
+                    elseif item.status.updatedAvailableReplicas ~= item.status.replicas then
+                        hs.status = "Degraded"
+                        hs.message = "Some replicas are not ready or available"
+                    end
                 end
+            end
+        end
+
+        return hs
+    
+    end
+
+    local initialStatus = checkStatus()
+
+    if initialStatus.status == "Suspended" or initialStatus.status == "Degraded" or initialStatus.status == "Progressing" then
+        for _ = 1, timeout do
+            os.execute("sleep 1")
+            local recheckStatus = checkStatus()
+            if recheckStatus.status ~= initialStatus.status then
+                return recheckStatus
             end
         end
     end
 
-return hs
+    return initialStatus
 
 end
 
