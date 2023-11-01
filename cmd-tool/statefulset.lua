@@ -1,8 +1,12 @@
 local StatefulSet = {}
 
-function StatefulSet.captureCommandOutput(namespace)
+function StatefulSet.captureCommandOutput(namespace,workloadName)
     local command = "kubectl get statefulset.apps.kruise.io -n " .. namespace .. " -o yaml"
 
+    if workloadName ~= nil then
+        command = command .. " " .. workloadName
+    end
+    
     local handle = io.popen(command)
     local output = handle:read("*a")
     local success, exit_reason, exit_code = handle:close()
@@ -14,17 +18,21 @@ function StatefulSet.captureCommandOutput(namespace)
     return output
 end
 
-function StatefulSet.checkHealthWithTimeout(namespace,timeout)
+function StatefulSet.checkHealthWithTimeout(namespace,workloadName,timeout)
     local lyaml = require("lyaml")
 
     local function checkStatus()
-        local output = StatefulSet.captureCommandOutput(namespace)
+        local output = StatefulSet.captureCommandOutput(namespace,workloadName)
         local obj, err = lyaml.load(output)
 
         local hs = { status = "Progressing", message = "Waiting for initialization" }
 
-        if obj.items[1] ~= nil and obj.items[1].status then
-            for _, item in ipairs(obj.items) do
+        if obj then
+            
+            local items = obj.items or { obj }
+
+            for _, item in ipairs(items) do
+
                 if item.metadata.generation == item.status.observedGeneration then
                     if item.spec.updateStrategy.rollingUpdate.paused == true or not item.status.updatedAvailableReplicas then
                         hs.status = "Suspended"

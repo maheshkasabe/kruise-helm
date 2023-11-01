@@ -1,7 +1,11 @@
 local acj = {}
 
-function acj.captureCommandOutput(namespace)
+function acj.captureCommandOutput(namespace,workloadName)
     local command = "kubectl get advancedcronjob.apps.kruise.io -n " .. namespace .. " -o yaml"
+
+    if workloadName ~= nil then
+        command = command .. " " .. workloadName
+    end
 
     local handle = io.popen(command)
     local output = handle:read("*a")
@@ -14,20 +18,22 @@ function acj.captureCommandOutput(namespace)
     return output
 end
 
-function acj.checkHealthWithTimeout(namespace,timeout)
+function acj.checkHealthWithTimeout(namespace,workloadName,timeout)
     local lyaml = require("lyaml")
 
     local function checkStatus()
-        local output = acj.captureCommandOutput(namespace)
+        local output = acj.captureCommandOutput(namespace,workloadName)
         local obj = lyaml.load(output)
     
         local hs = { status = "Progressing", message = "Waiting for intialization" }
     
         lastScheduleTime = nil
     
-        if obj.items[1] ~= nil then 
+        if obj then 
             
-            for _, item in ipairs(obj.items) do
+            local items = obj.items or { obj }
+            
+            for _, item in ipairs(items) do
     
                 if item.status.lastScheduleTime ~= nil then
                     local year, month, day, hour, min, sec = string.match(item.status.lastScheduleTime, "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)Z")

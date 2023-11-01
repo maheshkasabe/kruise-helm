@@ -1,7 +1,11 @@
 local bcj = {}
 
-function bcj.captureCommandOutput(namespace)
+function bcj.captureCommandOutput(namespace,workloadName)
     local command = "kubectl get broadcastjob.apps.kruise.io -n " .. namespace .. " -o yaml"
+
+    if workloadName ~= nil then
+        command = command .. " " .. workloadName
+    end
 
     local handle = io.popen(command)
     local output = handle:read("*a")
@@ -14,18 +18,20 @@ function bcj.captureCommandOutput(namespace)
     return output
 end
 
-function bcj.checkHealthWithTimeout(namespace,timeout)
+function bcj.checkHealthWithTimeout(namespace,workloadName,timeout)
     local lyaml = require("lyaml")
 
     local function checkStatus()
-        local output = bcj.captureCommandOutput(namespace)
+        local output = bcj.captureCommandOutput(namespace,workloadName)
         local obj = lyaml.load(output)
     
         local hs = { status = "Progressing",message = "Waiting for initialization" }
     
-        if obj.items[1] ~= nil and obj.items[1].status ~= nil then 
+        if obj then
+
+            local items = obj.items or { obj } 
             
-            for _, item in ipairs(obj.items) do 
+            for _, item in ipairs(items) do  
     
                 if item.status.desired == item.status.succeeded and item.status.phase == "completed" then 
                     hs.status = "Healthy"

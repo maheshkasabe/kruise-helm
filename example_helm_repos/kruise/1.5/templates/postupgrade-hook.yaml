@@ -14,6 +14,6 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
         - |
-            lua healthcheck.lua cloneset -t 20 -w guestbook-clone
+            lua healthcheck.lua cloneset default -w guestbook-clone -t 5
       restartPolicy: Never
       serviceAccountName: default

@@ -12,10 +12,11 @@ end
 
 -- Check for the -h option for help
 if table.concat(args, " "):find("%-h") then
-    print("Usage: lua healthcheck.lua [workload types] [namespace] [-t timeout]")
+    print("Usage: lua healthcheck.lua [workload types] [namespace] [-t timeout] [-w workloadNames]")
     print("Options:")
     print("-h          Show usage instructions.")
-    print("-t timeout  Set the timeout in seconds.")
+    print("-t timeout  Set the timeout in seconds (default is 10 seconds).")
+    print("-w workloadNames  Comma-separated list of workload names.")
     print("Workload types: cloneset, daemonset, statefulset, advancedcronjob (acj), broadcastjob (bcj)")
     os.exit(0)
 end
@@ -23,10 +24,11 @@ end
 -- Ensure that there's at least two arguments (workload types and namespace)
 if #args < 2 then
     print("Invalid command-line arguments. Use the format 'workloadType1,workloadType2,... namespace'")
-    print("Usage: lua healthcheck.lua [workload types] [namespace] [-t timeout]")
+    print("Usage: lua healthcheck.lua [workload types] [namespace] [-t timeout] [-w workloadNames]")
     print("Options:")
     print("-h          Show usage instructions.")
-    print("-t timeout  Set the timeout in seconds.")
+    print("-t timeout  Set the timeout in seconds (default is 10 seconds).")
+    print("-w workloadNames  Comma-separated list of workload names.")
     print("Workload types: cloneset, daemonset, statefulset, advancedcronjob (acj), broadcastjob (bcj)")
     os.exit(1)
 end
@@ -38,7 +40,16 @@ local namespace = table.remove(args, 1)
 -- Parse the -t (timeout) option
 local timeout = tonumber(parseArgument("-t")) or 10  -- Default timeout is 10 seconds
 
-local workloadName = parseArgument("-w")
+local workloadNames = parseArgument("-w")
+local workloadNamesTable = {}
+
+if workloadNames then
+    for name in string.gmatch(workloadNames, "[^,]+") do
+        table.insert(workloadNamesTable, name)
+    end
+else
+    table.insert(workloadNamesTable, "")
+end
 
 -- Split the workload types using a comma and iterate over them
 for kind in string.gmatch(workloadTypes, "[^,]+") do
@@ -61,24 +72,24 @@ for kind in string.gmatch(workloadTypes, "[^,]+") do
         os.exit(1)
     end
 
-    -- Capture output and check health with the specified timeout
-    local healthStatus
-    if workloadName then
-        healthStatus = workloadModule.checkHealthWithTimeout(namespace,workloadName,timeout)
-    else
-        healthStatus = workloadModule.checkHealthWithTimeout(namespace,nil,timeout)
-    end
+    for _, workloadName in ipairs(workloadNamesTable) do
+        -- Capture output and check health with the specified timeout
+        local healthStatus = workloadModule.checkHealthWithTimeout(namespace, workloadName, timeout)
 
-    -- Print the health status for each workload
-    print("Workload Type:", kind)
-    print("Namespace:", namespace)
-    print("Status:", healthStatus.status)
-    print("Message:", healthStatus.message)
-    print("\n")
+        -- Print the health status for each workload
+        print("Workload Type:", kind)
+        if workloadName then
+            print("Workload Name:", workloadName)
+        end
+        print("Namespace:", namespace)
+        print("Status:", healthStatus.status)
+        print("Message:", healthStatus.message)
+        print("\n")
 
-    -- Exit with the appropriate exit code if any workload is unhealthy
-    if healthStatus.status == "Degraded" then
-        print("Unhealthy. Exiting with a non-zero exit code.")
-        os.exit(1, true)
+        -- Exit with the appropriate exit code if any workload is unhealthy
+        if healthStatus.status == "Degraded" then
+            print("Unhealthy. Exiting with a non-zero exit code.")
+            os.exit(1, true)
+        end
     end
 end

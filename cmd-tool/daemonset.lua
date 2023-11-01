@@ -3,7 +3,8 @@ local DaemonSet = {}
 function DaemonSet.captureCommandOutput(namespace,workloadName)
 
     local command = "kubectl get daemonset.apps.kruise.io -n " .. namespace .. " -o yaml"
-    if workloadName then
+
+    if workloadName ~= nil then
         command = command .. " " .. workloadName
     end
 
@@ -18,41 +19,46 @@ function DaemonSet.captureCommandOutput(namespace,workloadName)
     return output
 end
 
-function DaemonSet.checkHealthWithTimeout(namespace, timeout, workloadName)
+function DaemonSet.checkHealthWithTimeout(namespace,workloadName,timeout)
     local lyaml = require("lyaml")
 
     local function checkStatus()
-        local output = DaemonSet.captureCommandOutput(namespace, workloadName)
+        local output = DaemonSet.captureCommandOutput(namespace,workloadName)
         local obj = lyaml.load(output)
         
         local hs={ status = "Progressing", message = "Waiting for initialization" }
 
-        if obj.items[1] ~= nil and obj.items[1].status ~= nil then
+        if obj then
+
+            local items = obj.items or { obj }
             
-            for _, item in ipairs(obj.items) do
+            for _, item in ipairs(items) do
+
+                if item.status then
                 
-                if item.metadata.generation == item.status.observedGeneration then
-        
-                    if item.spec.updateStrategy.rollingUpdate.paused == true or not item.status.updatedNumberScheduled then
-                        hs.status = "Suspended"
-                        hs.message = "Daemonset is paused"
-                    
-                    elseif item.spec.updateStrategy.rollingUpdate.partition > 0 and item.metadata.generation > 1 then
-                        if item.status.updatedNumberScheduled == (item.status.desiredNumberScheduled - item.spec.updateStrategy.rollingUpdate.partition) then
+                    if item.metadata.generation == item.status.observedGeneration then
+            
+                        if item.spec.updateStrategy.rollingUpdate.paused == true or not item.status.updatedNumberScheduled then
+                            hs.status = "Suspended"
+                            hs.message = "Daemonset is paused"
+                        
+                        elseif item.spec.updateStrategy.rollingUpdate.partition > 0 and item.metadata.generation > 1 then
+                            if item.status.updatedNumberScheduled == (item.status.desiredNumberScheduled - item.spec.updateStrategy.rollingUpdate.partition) then
+                                hs.status = "Healthy"
+                                hs.message = "All Daemonset workloads are ready and updated"
+                            else
+                                hs.status = "Suspended"
+                                hs.message = "Daemonset needs manual intervention"
+                            end
+                
+                        elseif (item.status.updatedNumberScheduled == item.status.desiredNumberScheduled) and (item.status.numberAvailable == item.status.desiredNumberScheduled) then
                             hs.status = "Healthy"
                             hs.message = "All Daemonset workloads are ready and updated"
-                        else
-                            hs.status = "Suspended"
-                            hs.message = "Daemonset needs manual intervention"
+                        
+                        elseif (item.status.updatedNumberScheduled == item.status.desiredNumberScheduled) and (item.status.numberUnavailable == item.status.desiredNumberScheduled) then
+                            hs.status = "Degraded"
+                            hs.message = "Some pods are not ready or available"
                         end
-            
-                    elseif (item.status.updatedNumberScheduled == item.status.desiredNumberScheduled) and (item.status.numberAvailable == item.status.desiredNumberScheduled) then
-                        hs.status = "Healthy"
-                        hs.message = "All Daemonset workloads are ready and updated"
-                    
-                    elseif (item.status.updatedNumberScheduled == item.status.desiredNumberScheduled) and (item.status.numberUnavailable == item.status.desiredNumberScheduled) then
-                        hs.status = "Degraded"
-                        hs.message = "Some pods are not ready or available"
                     end
                 end            
             end

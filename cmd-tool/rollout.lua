@@ -1,7 +1,11 @@
 local rollout = {}
 
-function rollout.captureCommandOutput(namespace)
+function rollout.captureCommandOutput(namespace,workloadName)
     local command = "kubectl get rollout.rollouts.kruise.io -n " .. namespace .. " -o yaml"
+
+    if workloadName ~= nil then
+        command = command .. " " .. workloadName
+    end
 
     local handle = io.popen(command)
     local output = handle:read("*a")
@@ -14,18 +18,20 @@ function rollout.captureCommandOutput(namespace)
     return output
 end
 
-function rollout.checkHealthWithTimeout(namespace)
+function rollout.checkHealthWithTimeout(namespace,workloadName,timeout)
     local lyaml = require("lyaml")
 
     local function checkStatus()
-        local output = rollout.captureCommandOutput(namespace,timeout)
+        local output = rollout.captureCommandOutput(namespace,workloadName)
         local obj = lyaml.load(output)
 
         hs={ status = "Progressing", message = "Rollout is still progressing" }
 
-        if obj.items[1] ~= nil and obj.items[1].status ~= nil then
+        if obj then
 
-            for _, item in ipairs(obj.items) do
+            local items = obj.items or { obj }
+
+            for _, item in ipairs(items) do
 
                 if item.metadata.generation == item.status.observedGeneration then
         
