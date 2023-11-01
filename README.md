@@ -75,7 +75,7 @@ Replace [workload types] with a comma-separated list of the workload types you w
 For example, to check the health of CloneSets, DaemonSets, and StatefulSets in the my-app namespace, you can run:
 
 ```
-lua healthcheck.lua cloneset/guestbook-clone ,daemonset,statefulset default -t 20
+lua healthcheck.lua cloneset default -w guestbook-clone,guestbook-clone2 -t 10
 ```
 
 The script will execute health checks for the specified workload types and provide detailed information about the health status of each workload. If any workload is found to be in a "Degraded" state, the script will exit with a non-zero exit code.
