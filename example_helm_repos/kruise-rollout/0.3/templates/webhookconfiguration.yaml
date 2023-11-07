@@ -58,8 +58,6 @@ webhooks:
           operator: NotIn
           values:
             - {{ .Values.rollout.fullname }}
-        - key: rollouts.kruise.io/workload-type
-          operator: Exists
         {{- if .Values.rollout.webhook.objectSelector }}
         {{- range $label := .Values.rollout.webhook.objectSelector }}
         - key: {{ $label.key }}
@@ -95,8 +93,6 @@ webhooks:
     {{- if .Values.rollout.webhook.objectSelector }}
     objectSelector:
       matchExpressions:
-        - key: rollouts.kruise.io/workload-type
-          operator: Exists
         {{- range $label := .Values.rollout.webhook.objectSelector }}
         - key: {{ $label.key }}
           operator: {{ $label.operator }}
@@ -131,8 +127,6 @@ webhooks:
     {{- if .Values.rollout.webhook.objectSelector }}
     objectSelector:
       matchExpressions:
-        - key: rollouts.kruise.io/workload-type
-          operator: Exists
         {{- range $label := .Values.rollout.webhook.objectSelector }}
         - key: {{ $label.key }}
           operator: {{ $label.operator }}
@@ -167,8 +161,6 @@ webhooks:
     {{- if .Values.rollout.webhook.objectSelector }}
     objectSelector:
       matchExpressions:
-        - key: rollouts.kruise.io/workload-type
-          operator: Exists
         {{- range $label := .Values.rollout.webhook.objectSelector }}
         - key: {{ $label.key }}
           operator: {{ $label.operator }}

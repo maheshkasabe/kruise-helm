@@ -14,6 +14,6 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
         - |
-            lua healthcheck.lua rollouts default
+            lua healthcheck.lua rollout my-ns -t 10
       restartPolicy: Never
       serviceAccountName: default

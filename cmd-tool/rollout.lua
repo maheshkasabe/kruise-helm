@@ -34,23 +34,24 @@ function rollout.checkHealthWithTimeout(namespace,workloadName,timeout)
             for _, item in ipairs(items) do
 
                 if item.metadata.generation == item.status.observedGeneration then
+
+                    if item.status.phase == "Initial" then
+                        hs.status = "Degraded"
+                        hs.message = item.status.message
         
-                    if item.status.canaryStatus.currentStepState == "StepUpgrade" and item.status.phase == "Progressing" then
+                    elseif item.status.canaryStatus.currentStepState == "StepUpgrade" and item.status.phase == "Progressing" then
                         hs.status = "Progressing"
                         hs.message = "Rollout is still progressing"
-                    end
                 
-                    if item.status.canaryStatus.currentStepState == "StepPaused" and item.status.phase == "Progressing" then
+                    elseif item.status.canaryStatus.currentStepState == "StepPaused" and item.status.phase == "Progressing" then
                         hs.status = "Suspended"
                         hs.message = "Rollout is Paused need manual intervention"
-                    end
                 
-                    if item.status.canaryStatus.currentStepState == "Completed" and item.status.phase == "Healthy" then
+                    elseif item.status.canaryStatus.currentStepState == "Completed" and item.status.phase == "Healthy" then
                         hs.status = "Healthy"
                         hs.message = "Rollout is Completed"
-                    end
                 
-                    if item.status.canaryStatus.currentStepState == "StepPaused" and (item.status.phase == "Terminating" or item.status.phase == "Disabled") then
+                    elseif item.status.canaryStatus.currentStepState == "StepPaused" and (item.status.phase == "Terminating" or item.status.phase == "Disabled") then
                         hs.status = "Degraded"
                         hs.message = "Rollout is Disabled or Terminating"
                     end

@@ -32,7 +32,7 @@ image:
   repository: openkruise/kruise-rollout
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: v0.4.0
+  tag: v0.3.0
 imagePullSecrets:
   # - name: for-your-secret-name
 serviceAccount:

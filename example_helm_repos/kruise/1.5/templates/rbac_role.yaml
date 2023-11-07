@@ -894,7 +894,7 @@ subjects:
 ---
 #Post-upgrade Job Role
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: post-install-role
   namespace: default
@@ -904,7 +904,7 @@ rules:
   verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: post-install-rolebinding
   namespace: default
@@ -913,5 +913,5 @@ subjects:
   name: default
   namespace: default
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: post-install-role
